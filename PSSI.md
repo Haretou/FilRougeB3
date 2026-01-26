@@ -32,3 +32,4 @@ Les différents outils et technologies utilisées pour ce projet son listé si d
 | **Infrastructure** | Docker | Garantit une infrastructure de type **"zero-trust"**, avec une isolation stricte des services et une orchestration sécurisée. |
 | **Intégration Continue (CI/CD)** | GitHub  | blablablabal
 
+
