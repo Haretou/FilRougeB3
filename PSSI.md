@@ -6,7 +6,6 @@
 
 **Version**: 1.0
 **Date**: 26 Janvier 2026
-**Auteur**: Manus AI
 **Statut**: Version initiale
 
 ---
