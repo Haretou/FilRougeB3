@@ -1,0 +1,63 @@
+services:
+  # --- Application SafeLock ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://safelock:safelock_secret@db:3306/safelock
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - safelock-net
+    restart: unless-stopped
+
+  # --- Base de donnees MySQL ---
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secret
+      MYSQL_DATABASE: safelock
+      MYSQL_USER: safelock
+      MYSQL_PASSWORD: safelock_secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safelock-net
+    restart: unless-stopped
+
+  # --- Stockage objets MinIO (S3-compatible) ---
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: safelock_admin
+      MINIO_ROOT_PASSWORD: safelock_minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - safelock-net
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  minio_data:
+
+networks:
+  safelock-net:
+    driver: bridge
