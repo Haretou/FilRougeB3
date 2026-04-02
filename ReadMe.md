@@ -1,20 +1,114 @@
-# Coffre-Fort Numérique Personnel
+# SafeLock - Coffre-Fort Numerique Personnel
 
-##  Vue d'Ensemble
+Solution de stockage cloud **zero-knowledge** permettant aux particuliers de stocker, synchroniser et partager leurs fichiers sensibles en toute confidentialite.
 
-Le **Coffre-Fort Numérique Personnel** est une solution de stockage cloud hautement sécurisée, conçue pour offrir aux particuliers un espace personnel et confidentiel pour leurs données sensibles. Le projet repose sur une architecture **zero-knowledge** garantissant que seul le propriétaire légitime des données peut y accéder, même les administrateurs du service n'ont aucune visibilité sur le contenu stocké.
+## Principe
 
-Accès au [Trello](https://trello.com/b/s2j0XYN2/projet-fil-rouge-b3) ## Organisation du projet / roadmap
-##  Objectifs du Projet
+Les fichiers sont **chiffres cote client** (AES-256-GCM) avant d'etre envoyes au serveur. La cle de chiffrement est derivee du mot de passe maitre via **Argon2id**. Le serveur ne voit jamais les donnees en clair — meme un administrateur ne peut pas acceder au contenu.
 
-Ce projet a pour vocation de démontrer la maîtrise complète d'une stack technique moderne et sécurisée, en validant des compétences transversales en :
+## Architecture
 
-- **Gouvernance, Risques et Conformité (GRC)** : Politique zero-knowledge, analyse de risques cryptographiques, conformité RGPD
-- **Gestion des Incidents** : Procédures de récupération d'accès, backup chiffré distribué, plan de continuité (PCA/PRA)
-- **Architecture de Bases de Données** : PostgreSQL pour métadonnées chiffrées, Apache Cassandra pour stockage distribué
-- **Pentesting & Sécurité Offensive** : Audit cryptographique, tests sur gestion de clés, protection contre attaques side-channel
-- **DevOps & Infrastructure** : Infrastructure zero-trust, CI/CD avec tests cryptographiques automatisés
-- **Forensique Numérique** : Simulation de vol de device, analyse de rémanence mémoire
+```
+┌─────────────────────────────────────────────────────┐
+│                    Client (Navigateur)                │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │  Interface    │  │  Crypto      │  │  Derivation│ │
+│  │  Next.js/React│  │  AES-256-GCM │  │  Argon2id  │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬─────┘ │
+│         │                 │                  │        │
+└─────────┼─────────────────┼──────────────────┼───────┘
+          │ HTTPS           │ Blobs chiffres   │
+          ▼                 ▼                  ▼
+┌─────────────────────────────────────────────────────┐
+│                 Infrastructure Docker                 │
+│                                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │  Backend      │  │  MySQL 8     │  │  MinIO     │ │
+│  │  Next.js API  │  │  Metadonnees │  │  Stockage  │ │
+│  │  Port 3000    │  │  chiffrees   │  │  S3-compat │ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+│                                                       │
+└─────────────────────────────────────────────────────┘
+```
 
+## Stack technique
 
+| Composant | Technologie | Justification |
+|-----------|------------|---------------|
+| Frontend | Next.js 16 (React, TypeScript) | Framework moderne, SSR, ecosysteme riche |
+| Backend | Next.js API Routes | Stack JS unifiee, simplification du deploiement |
+| BDD | MySQL 8 | Metadonnees chiffrees, gestion utilisateurs, DCL |
+| Stockage fichiers | MinIO (S3-compatible) | Blobs chiffres, auto-heberge, resilient |
+| Crypto client | Web Crypto API + Argon2id | Chiffrement AES-256-GCM, derivation de cle |
+| Infrastructure | Docker + Docker Compose | Containerisation, segmentation reseau, zero-trust |
+| CI/CD | GitHub Actions | Tests automatises, SAST, scan de dependances |
+| Logs / Audit | Base NoSQL (a venir) | Centralisation des evenements de securite |
 
+## Equipe
+
+| Membre | Responsabilites |
+|--------|----------------|
+| **Gaspard** | Developpement Frontend/Backend, Forensique numerique, Coordination |
+| **Antoine** | BDD & NoSQL, DevOps (CI/CD, Docker), Pentesting, Co-developpement Backend |
+| **Raphael** | GRC (PSSI, Analyse de risques), Gestion des incidents, PCA/PRA |
+
+La documentation et la gestion de projet sont assurees par l'ensemble de l'equipe.
+
+## Demarrage rapide
+
+### Prerequis
+- Docker et Docker Compose
+- Node.js 20+ (pour le developpement local)
+
+### Lancer avec Docker
+```bash
+docker compose up --build
+```
+L'application sera accessible sur `http://localhost:3000`.
+
+### Developpement local
+```bash
+npm install
+npm run dev
+```
+
+## Structure du projet
+
+```
+safelock/
+├── src/
+│   └── app/
+│       ├── page.tsx              # Page login/inscription
+│       ├── layout.tsx            # Layout racine
+│       ├── globals.css           # Theme SafeLock
+│       └── dashboard/
+│           ├── layout.tsx        # Layout dashboard (sidebar)
+│           └── page.tsx          # Vue "Mes fichiers"
+├── db/
+│   └── init/
+│       └── 001-schema.sql       # Schema MySQL initial
+├── docs/
+│   └── PSSI.md                  # Politique de Securite (v1.0)
+├── docker-compose.yml            # Orchestration des services
+├── Dockerfile                    # Build multi-stage de l'app
+└── README.md
+```
+
+## Competences visees
+
+- **GRC** : PSSI, analyse de risques EBIOS RM, plan de traitement
+- **Gestion des incidents** : PCA/PRA, procedures de recuperation
+- **BDD** : MySQL (DCL, sauvegardes), NoSQL (logs, audit)
+- **Pentesting** : Audit OWASP Top 10, tests crypto, gestion de cles
+- **DevOps** : Docker, CI/CD GitHub Actions, SAST, scan de dependances
+- **Forensique** : Simulation d'incident, collecte de preuves, analyse
+
+## Gestion de projet
+
+- **Versionnement** : Git / GitHub
+- **Suivi des taches** : Trello
+- **Communication** : Teams
+
+## Licence
+
+Projet academique - Ynov Campus Montpellier - UF CYBER B3 - 2026
