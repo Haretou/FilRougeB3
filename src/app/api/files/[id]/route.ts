@@ -70,7 +70,11 @@ export async function PATCH(
     ]);
   }
 
-  if (body.parentFolderId !== undefined) {
+  if (body.restore === true) {
+    await db.execute('UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE id = ?', [id]);
+  }
+
+  if ('parentFolderId' in body) {
     await db.execute('UPDATE files SET parent_folder_id = ? WHERE id = ?', [
       body.parentFolderId ?? null,
       id,

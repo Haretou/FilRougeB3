@@ -3,26 +3,39 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 
-// GET /api/files?parentId=xxx  — liste les fichiers/dossiers
+// GET /api/files?parentId=xxx&filter=recent|starred|trash
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const parentId = searchParams.get('parentId') ?? null;
+  const filter = searchParams.get('filter');
 
-  const [rows] = await db.execute<any[]>(
-    `SELECT
-      id, name_encrypted, mime_type_encrypted,
-      size_bytes, is_folder, is_starred, is_deleted,
-      created_at, updated_at, parent_folder_id
-     FROM files
-     WHERE owner_id = ?
-       AND is_deleted = FALSE
-       AND parent_folder_id ${parentId ? '= ?' : 'IS NULL'}
-     ORDER BY is_folder DESC, created_at DESC`,
-    parentId ? [user.id, parentId] : [user.id]
-  );
+  let query = '';
+  let params: unknown[] = [user.id];
+
+  if (filter === 'starred') {
+    query = `SELECT id, name_encrypted, mime_type_encrypted, size_bytes, is_folder, is_starred, is_deleted, created_at, updated_at, parent_folder_id
+             FROM files WHERE owner_id = ? AND is_deleted = FALSE AND is_starred = TRUE
+             ORDER BY updated_at DESC`;
+  } else if (filter === 'trash') {
+    query = `SELECT id, name_encrypted, mime_type_encrypted, size_bytes, is_folder, is_starred, is_deleted, created_at, updated_at, parent_folder_id
+             FROM files WHERE owner_id = ? AND is_deleted = TRUE
+             ORDER BY deleted_at DESC`;
+  } else if (filter === 'recent') {
+    query = `SELECT id, name_encrypted, mime_type_encrypted, size_bytes, is_folder, is_starred, is_deleted, created_at, updated_at, parent_folder_id
+             FROM files WHERE owner_id = ? AND is_deleted = FALSE AND is_folder = FALSE
+             ORDER BY updated_at DESC LIMIT 20`;
+  } else {
+    query = `SELECT id, name_encrypted, mime_type_encrypted, size_bytes, is_folder, is_starred, is_deleted, created_at, updated_at, parent_folder_id
+             FROM files WHERE owner_id = ? AND is_deleted = FALSE
+             AND parent_folder_id ${parentId ? '= ?' : 'IS NULL'}
+             ORDER BY is_folder DESC, created_at DESC`;
+    if (parentId) params.push(parentId);
+  }
+
+  const [rows] = await db.execute<any[]>(query, params);
 
   const files = rows.map((r) => ({
     id: r.id,

@@ -74,6 +74,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS passwords (
+    id CHAR(36) PRIMARY KEY,
+    owner_id CHAR(36) NOT NULL,
+    site_name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) DEFAULT '',
+    password_value TEXT NOT NULL,
+    url VARCHAR(500) DEFAULT '',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Index pour les performances
 CREATE INDEX idx_files_owner ON files(owner_id);
 CREATE INDEX idx_files_parent ON files(parent_folder_id);

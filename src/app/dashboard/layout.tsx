@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Shield,
   FolderClosed,
@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Plus,
   HardDrive,
+  KeyRound,
 } from "lucide-react";
 
 interface User {
@@ -32,16 +33,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => {
-        if (!r.ok) {
-          router.push("/");
-          return null;
-        }
+        if (!r.ok) { router.push("/"); return null; }
         return r.json();
       })
       .then((data) => data && setUser(data))
@@ -58,24 +57,19 @@ export default function DashboardLayout({
   const storagePercent = storageLimitGb > 0 ? (storageUsedGb / storageLimitGb) * 100 : 0;
 
   const initials = user
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+    ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "?";
 
   const navItems = [
-    { icon: FolderClosed, label: "Mes fichiers", href: "/dashboard", active: true },
-    { icon: Clock, label: "Recents", href: "/dashboard", active: false },
-    { icon: Star, label: "Favoris", href: "/dashboard", active: false },
-    { icon: Trash2, label: "Corbeille", href: "/dashboard", active: false },
+    { icon: FolderClosed, label: "Mes fichiers",  href: "/dashboard" },
+    { icon: Clock,        label: "Récents",        href: "/dashboard/recent" },
+    { icon: Star,         label: "Favoris",        href: "/dashboard/favorites" },
+    { icon: Trash2,       label: "Corbeille",      href: "/dashboard/trash" },
+    { icon: KeyRound,     label: "Mots de passe",  href: "/dashboard/passwords" },
   ];
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border flex flex-col shrink-0">
         {/* Logo */}
         <div className="p-6 border-b border-border">
@@ -87,7 +81,7 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        {/* New upload button */}
+        {/* Upload button */}
         <div className="p-4">
           <label className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
             <Plus className="w-4 h-4" />
@@ -101,7 +95,8 @@ export default function DashboardLayout({
                 const fd = new FormData();
                 fd.append("file", file);
                 await fetch("/api/files/upload", { method: "POST", body: fd });
-                window.location.reload();
+                if (pathname === "/dashboard") window.location.reload();
+                else router.push("/dashboard");
               }}
             />
           </label>
@@ -109,23 +104,28 @@ export default function DashboardLayout({
 
         {/* Navigation */}
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                item.active
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted hover:text-foreground hover:bg-card-hover"
-              }`}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active = item.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                  active
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted hover:text-foreground hover:bg-card-hover"
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Storage indicator */}
+        {/* Storage */}
         <div className="p-4 mx-3 mb-3 bg-background rounded-lg">
           <div className="flex items-center gap-2 text-sm text-muted mb-2">
             <HardDrive className="w-4 h-4" />
@@ -138,29 +138,28 @@ export default function DashboardLayout({
             />
           </div>
           <p className="text-xs text-muted mt-2">
-            {storageUsedGb.toFixed(2)} Go sur {storageLimitGb.toFixed(0)} Go utilises
+            {storageUsedGb.toFixed(2)} Go sur {storageLimitGb.toFixed(0)} Go utilisés
           </p>
         </div>
 
-        {/* Bottom nav */}
+        {/* Bottom */}
         <div className="border-t border-border p-3 space-y-1">
           <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted hover:text-foreground hover:bg-card-hover transition-all w-full">
             <Settings className="w-4 h-4" />
-            Parametres
+            Paramètres
           </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-danger hover:bg-danger/10 transition-all w-full"
           >
             <LogOut className="w-4 h-4" />
-            Deconnexion
+            Déconnexion
           </button>
         </div>
       </aside>
 
-      {/* Main content area */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
         <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-card/50 shrink-0">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -177,7 +176,6 @@ export default function DashboardLayout({
             <button className="relative text-muted hover:text-foreground transition-colors">
               <Bell className="w-5 h-5" />
             </button>
-
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium text-primary">{initials}</span>
@@ -187,7 +185,6 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
