@@ -12,14 +12,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    // Simule un délai d'auth
-    setTimeout(() => {
+
+    try {
+      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+      const body = isLogin ? { email, password } : { email, password, name };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Une erreur est survenue");
+        return;
+      }
+
       router.push("/dashboard");
-    }, 800);
+    } catch {
+      setError("Erreur de connexion au serveur");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,7 +116,7 @@ export default function LoginPage() {
           {/* Tabs */}
           <div className="flex bg-card rounded-lg p-1">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => { setIsLogin(true); setError(""); }}
               className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
                 isLogin
                   ? "bg-primary text-white shadow-lg"
@@ -104,7 +126,7 @@ export default function LoginPage() {
               Connexion
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => { setIsLogin(false); setError(""); }}
               className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
                 !isLogin
                   ? "bg-primary text-white shadow-lg"
@@ -114,6 +136,12 @@ export default function LoginPage() {
               Inscription
             </button>
           </div>
+
+          {error && (
+            <div className="bg-danger/10 border border-danger/30 rounded-lg px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
@@ -128,6 +156,7 @@ export default function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jean Dupont"
+                    required={!isLogin}
                     className="w-full bg-card border border-border rounded-lg py-3 pl-10 pr-4 text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                   />
                 </div>
@@ -145,6 +174,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@example.com"
+                  required
                   className="w-full bg-card border border-border rounded-lg py-3 pl-10 pr-4 text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                 />
               </div>
@@ -161,6 +191,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
+                  required
                   className="w-full bg-card border border-border rounded-lg py-3 pl-10 pr-11 text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                 />
                 <button

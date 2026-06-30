@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,14 @@ import {
   HardDrive,
 } from "lucide-react";
 
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  storageUsed: number;
+  storageLimit: number;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -25,6 +33,38 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => {
+        if (!r.ok) {
+          router.push("/");
+          return null;
+        }
+        return r.json();
+      })
+      .then((data) => data && setUser(data))
+      .catch(() => router.push("/"));
+  }, [router]);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+  };
+
+  const storageUsedGb = user ? user.storageUsed / 1_073_741_824 : 0;
+  const storageLimitGb = user ? user.storageLimit / 1_073_741_824 : 10;
+  const storagePercent = storageLimitGb > 0 ? (storageUsedGb / storageLimitGb) * 100 : 0;
+
+  const initials = user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
 
   const navItems = [
     { icon: FolderClosed, label: "Mes fichiers", href: "/dashboard", active: true },
@@ -32,10 +72,6 @@ export default function DashboardLayout({
     { icon: Star, label: "Favoris", href: "/dashboard", active: false },
     { icon: Trash2, label: "Corbeille", href: "/dashboard", active: false },
   ];
-
-  const storageUsed = 2.4;
-  const storageTotal = 10;
-  const storagePercent = (storageUsed / storageTotal) * 100;
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -53,10 +89,22 @@ export default function DashboardLayout({
 
         {/* New upload button */}
         <div className="p-4">
-          <button className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-sm">
+          <label className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-sm cursor-pointer">
             <Plus className="w-4 h-4" />
             Ajouter un fichier
-          </button>
+            <input
+              type="file"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const fd = new FormData();
+                fd.append("file", file);
+                await fetch("/api/files/upload", { method: "POST", body: fd });
+                window.location.reload();
+              }}
+            />
+          </label>
         </div>
 
         {/* Navigation */}
@@ -86,11 +134,11 @@ export default function DashboardLayout({
           <div className="w-full h-2 bg-border rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${storagePercent}%` }}
+              style={{ width: `${Math.min(storagePercent, 100)}%` }}
             />
           </div>
           <p className="text-xs text-muted mt-2">
-            {storageUsed} Go sur {storageTotal} Go utilises
+            {storageUsedGb.toFixed(2)} Go sur {storageLimitGb.toFixed(0)} Go utilises
           </p>
         </div>
 
@@ -101,7 +149,7 @@ export default function DashboardLayout({
             Parametres
           </button>
           <button
-            onClick={() => router.push("/")}
+            onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-danger hover:bg-danger/10 transition-all w-full"
           >
             <LogOut className="w-4 h-4" />
@@ -128,12 +176,11 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4 ml-4">
             <button className="relative text-muted hover:text-foreground transition-colors">
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
             </button>
 
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">JD</span>
+                <span className="text-sm font-medium text-primary">{initials}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-muted" />
             </div>
