@@ -201,8 +201,18 @@ export default function FilePreviewPanel({ file, onClose, onStarToggle, onDelete
             {!loadingPreview && isVideo(file.mimeType) && previewUrl && (
               <video src={previewUrl} controls className="max-w-full max-h-full p-4" />
             )}
-            {!loadingPreview && isPdf(file.mimeType) && previewUrl && (
-              <iframe src={previewUrl} className="w-full h-full border-0" title={file.name} />
+            {!loadingPreview && isPdf(file.mimeType) && (
+              <div className="text-center text-muted px-6">
+                <FileText className="w-12 h-12 mx-auto mb-3 text-red-400" />
+                <p className="text-sm font-medium text-foreground mb-1">{file.name}</p>
+                <p className="text-xs mb-4">{formatSize(file.sizeBytes)} · PDF</p>
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 mx-auto bg-primary hover:bg-primary-hover text-white text-xs px-4 py-2 rounded-lg transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" /> Télécharger pour voir
+                </button>
+              </div>
             )}
             {!loadingPreview && isText(file.mimeType) && previewText !== null && (
               <pre className="w-full h-full overflow-auto p-4 text-xs text-foreground font-mono whitespace-pre-wrap">
