@@ -1,0 +1,119 @@
+<h2>Quel layout pour l'explorateur de fichiers ?</h2>
+<p class="subtitle">Choisir comment organiser la navigation par dossiers, l'aperçu et l'édition</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;border-radius:8px;padding:10px;font-size:11px;color:#8b8fa8;">
+      <div style="display:flex;height:220px;gap:6px;">
+        <!-- Sidebar nav -->
+        <div style="width:90px;background:#161b27;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+          <div style="color:#6366f1;font-weight:700;font-size:10px;margin-bottom:4px;">SafeLock</div>
+          <div style="background:#6366f1;color:white;border-radius:4px;padding:4px 6px;font-size:9px;">📁 Mes fichiers</div>
+          <div style="color:#8b8fa8;padding:4px 6px;font-size:9px;">⭐ Favoris</div>
+          <div style="color:#8b8fa8;padding:4px 6px;font-size:9px;">🗑 Corbeille</div>
+          <div style="color:#8b8fa8;padding:4px 6px;font-size:9px;">🔑 Mots de passe</div>
+        </div>
+        <!-- File list -->
+        <div style="flex:1;background:#161b27;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:3px;">
+          <div style="color:#e2e5f0;font-size:10px;font-weight:600;margin-bottom:4px;">📁 Projets <span style="color:#6366f1;font-size:9px;">→ Sous-dossier</span></div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 6px;font-size:9px;color:#c5c8d6;cursor:pointer;">📁 Projets</div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 6px;font-size:9px;color:#c5c8d6;cursor:pointer;border:1px solid #6366f1;">📄 Rapport_Annuel.pdf</div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 6px;font-size:9px;color:#c5c8d6;cursor:pointer;">🖼 Photo_Equipe.jpg</div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 6px;font-size:9px;color:#c5c8d6;cursor:pointer;">📊 Budget.xlsx</div>
+        </div>
+        <!-- Preview panel -->
+        <div style="width:110px;background:#161b27;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+          <div style="color:#e2e5f0;font-size:9px;font-weight:600;">Aperçu</div>
+          <div style="background:#0f1117;border-radius:4px;flex:1;display:flex;align-items:center;justify-content:center;font-size:18px;">📄</div>
+          <div style="color:#6366f1;font-size:8px;font-weight:600;">Rapport_Annuel.pdf</div>
+          <div style="color:#8b8fa8;font-size:8px;">2.3 Mo · PDF</div>
+          <button style="background:#6366f1;color:white;border:none;border-radius:4px;padding:3px 6px;font-size:8px;cursor:pointer;">⬇ Télécharger</button>
+          <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:4px;padding:3px 6px;font-size:8px;cursor:pointer;">✏️ Modifier</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — 3 colonnes : nav · liste · aperçu</h3>
+      <p>Sidebar gauche fixe, liste de fichiers au centre, panneau d'aperçu/édition à droite. Tout visible en permanence. Style Finder/Outlook.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;border-radius:8px;padding:10px;font-size:11px;color:#8b8fa8;">
+      <div style="display:flex;height:220px;gap:6px;flex-direction:column;">
+        <!-- Breadcrumb -->
+        <div style="background:#161b27;border-radius:6px;padding:5px 8px;font-size:9px;color:#8b8fa8;">
+          🏠 Mes fichiers <span style="color:#6366f1;">›</span> Projets <span style="color:#6366f1;">›</span> <strong style="color:#e2e5f0;">Rapport_Annuel.pdf</strong>
+        </div>
+        <div style="display:flex;gap:6px;flex:1;">
+          <!-- File grid -->
+          <div style="flex:1;background:#161b27;border-radius:6px;padding:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;align-content:start;">
+            <div style="background:#1e2538;border-radius:6px;padding:8px;text-align:center;font-size:16px;cursor:pointer;">📁<div style="font-size:8px;color:#c5c8d6;margin-top:2px;">Projets</div></div>
+            <div style="background:#1e2538;border-radius:6px;padding:8px;text-align:center;font-size:16px;cursor:pointer;border:1px solid #6366f1;">📄<div style="font-size:8px;color:#6366f1;margin-top:2px;">Rapport.pdf</div></div>
+            <div style="background:#1e2538;border-radius:6px;padding:8px;text-align:center;font-size:16px;cursor:pointer;">🖼<div style="font-size:8px;color:#c5c8d6;margin-top:2px;">Photo.jpg</div></div>
+            <div style="background:#1e2538;border-radius:6px;padding:8px;text-align:center;font-size:16px;cursor:pointer;">📊<div style="font-size:8px;color:#c5c8d6;margin-top:2px;">Budget.xlsx</div></div>
+          </div>
+          <!-- Preview -->
+          <div style="width:110px;background:#161b27;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:4px;">
+            <div style="color:#e2e5f0;font-size:9px;font-weight:600;">Aperçu</div>
+            <div style="background:#0f1117;border-radius:4px;flex:1;display:flex;align-items:center;justify-content:center;font-size:18px;">📄</div>
+            <div style="color:#6366f1;font-size:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Rapport_Annuel.pdf</div>
+            <button style="background:#6366f1;color:white;border:none;border-radius:4px;padding:3px 6px;font-size:8px;cursor:pointer;">⬇ Télécharger</button>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:4px;padding:3px 6px;font-size:8px;cursor:pointer;">✏️ Modifier</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Grille + breadcrumb + panneau droit</h3>
+      <p>Navigation par breadcrumb, fichiers en grille de tuiles, aperçu/édition dans un panneau qui s'ouvre à droite au clic. Style Google Drive.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;border-radius:8px;padding:10px;font-size:11px;color:#8b8fa8;">
+      <div style="display:flex;height:220px;gap:6px;flex-direction:column;">
+        <!-- Breadcrumb -->
+        <div style="background:#161b27;border-radius:6px;padding:5px 8px;font-size:9px;color:#8b8fa8;">
+          🏠 <span style="color:#6366f1;">›</span> Projets
+        </div>
+        <!-- List -->
+        <div style="flex:1;background:#161b27;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:3px;overflow:hidden;">
+          <div style="background:#1e2538;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <span style="font-size:14px;">📁</span>
+            <span style="font-size:9px;color:#c5c8d6;flex:1;">Projets</span>
+            <span style="font-size:8px;color:#8b8fa8;">—</span>
+          </div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;border-left:3px solid #6366f1;">
+            <span style="font-size:14px;">📄</span>
+            <span style="font-size:9px;color:#e2e5f0;flex:1;">Rapport_Annuel.pdf</span>
+            <span style="font-size:8px;color:#8b8fa8;">2.3 Mo</span>
+          </div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <span style="font-size:14px;">🖼</span>
+            <span style="font-size:9px;color:#c5c8d6;flex:1;">Photo_Equipe.jpg</span>
+            <span style="font-size:8px;color:#8b8fa8;">3.0 Mo</span>
+          </div>
+          <div style="background:#1e2538;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <span style="font-size:14px;">📊</span>
+            <span style="font-size:9px;color:#c5c8d6;flex:1;">Budget.xlsx</span>
+            <span style="font-size:8px;color:#8b8fa8;">960 Ko</span>
+          </div>
+        </div>
+        <!-- Bottom modal hint -->
+        <div style="background:#6366f1;border-radius:6px;padding:6px 10px;font-size:8px;color:white;text-align:center;">
+          Clic sur fichier → modal plein écran avec aperçu + édition + téléchargement
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Liste + modal plein écran</h3>
+      <p>Liste simple avec breadcrumb. Cliquer sur un fichier ouvre une modale plein écran avec aperçu, lecture et édition. Plus d'espace pour l'aperçu, style Notion/Linear.</p>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,207 @@
+<h2>Design complet — SafeLock Explorateur</h2>
+<p class="subtitle">Valide chaque section avant qu'on commence à coder</p>
+
+<div class="section">
+  <h3>1. Layout global — 3 colonnes</h3>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard — Mes fichiers / Favoris / Récents / Corbeille</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;border-radius:0 0 8px 8px;">
+      <div style="display:flex;height:360px;font-size:10px;color:#8b8fa8;">
+
+        <!-- Col 1 : Sidebar nav (existante) -->
+        <div style="width:80px;background:#161b27;border-right:1px solid #2a3050;padding:10px 6px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <div style="color:#6366f1;font-weight:700;font-size:9px;margin-bottom:8px;text-align:center;">SafeLock</div>
+          <div style="background:#6366f1;color:white;border-radius:4px;padding:4px 5px;font-size:8px;text-align:center;">📁 Fichiers</div>
+          <div style="color:#8b8fa8;padding:4px 5px;font-size:8px;text-align:center;">⏱ Récents</div>
+          <div style="color:#8b8fa8;padding:4px 5px;font-size:8px;text-align:center;">⭐ Favoris</div>
+          <div style="color:#8b8fa8;padding:4px 5px;font-size:8px;text-align:center;">🗑 Corbeille</div>
+          <div style="color:#8b8fa8;padding:4px 5px;font-size:8px;text-align:center;">🔑 Mots de passe</div>
+          <div style="flex:1;"></div>
+          <div style="background:#1a1f2e;border-radius:4px;padding:5px;font-size:7px;color:#8b8fa8;text-align:center;">
+            <div style="background:#6366f1;height:2px;border-radius:1px;width:60%;margin:0 auto 4px;"></div>
+            0.08 / 10 Go
+          </div>
+        </div>
+
+        <!-- Col 2 : Liste fichiers + breadcrumb -->
+        <div style="width:220px;border-right:1px solid #2a3050;display:flex;flex-direction:column;background:#0f1117;flex-shrink:0;">
+          <!-- Breadcrumb -->
+          <div style="padding:8px 10px;background:#161b27;border-bottom:1px solid #2a3050;font-size:8px;display:flex;align-items:center;gap:4px;">
+            <span style="color:#6366f1;cursor:pointer;">🏠</span>
+            <span style="color:#2a3050;">›</span>
+            <span style="color:#6366f1;cursor:pointer;">Projets</span>
+          </div>
+          <!-- Toolbar -->
+          <div style="padding:5px 8px;display:flex;gap:4px;border-bottom:1px solid #2a3050;background:#161b27;">
+            <div style="background:#6366f1;color:white;border-radius:3px;padding:2px 5px;font-size:7px;cursor:pointer;">+ Dossier</div>
+            <div style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:3px;padding:2px 5px;font-size:7px;cursor:pointer;">↑ Upload</div>
+            <div style="margin-left:auto;background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:3px;padding:2px 5px;font-size:7px;">≡ ⊞</div>
+          </div>
+          <!-- File rows -->
+          <div style="flex:1;overflow-y:auto;padding:6px;">
+            <div style="background:#161b27;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;">
+              <span style="font-size:13px;">📁</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:8px;color:#c5c8d6;font-weight:600;">Personnel</div>
+                <div style="font-size:7px;color:#8b8fa8;">3 éléments</div>
+              </div>
+            </div>
+            <div style="background:#1e2a45;border:1px solid #6366f1;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;">
+              <span style="font-size:13px;">📄</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:8px;color:#e2e5f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Rapport_Annuel.pdf</div>
+                <div style="font-size:7px;color:#8b8fa8;">2.3 Mo · PDF</div>
+              </div>
+              <span style="color:#f59e0b;font-size:9px;">⭐</span>
+            </div>
+            <div style="background:#161b27;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;">
+              <span style="font-size:13px;">🖼</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:8px;color:#c5c8d6;font-weight:600;">Photo_Equipe.jpg</div>
+                <div style="font-size:7px;color:#8b8fa8;">3.0 Mo · Image</div>
+              </div>
+            </div>
+            <div style="background:#161b27;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;">
+              <span style="font-size:13px;">📊</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:8px;color:#c5c8d6;font-weight:600;">Budget_Q3.xlsx</div>
+                <div style="font-size:7px;color:#8b8fa8;">960 Ko · Excel</div>
+              </div>
+            </div>
+            <div style="background:#161b27;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <span style="font-size:13px;">📝</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:8px;color:#c5c8d6;font-weight:600;">Notes_Reunion.md</div>
+                <div style="font-size:7px;color:#8b8fa8;">12 Ko · Texte</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Col 3 : Panneau aperçu/édition -->
+        <div style="flex:1;background:#0f1117;display:flex;flex-direction:column;min-width:0;">
+          <!-- Header panneau -->
+          <div style="padding:8px 12px;background:#161b27;border-bottom:1px solid #2a3050;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13px;">📄</span>
+            <span style="font-size:9px;color:#e2e5f0;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Rapport_Annuel.pdf</span>
+            <span style="background:#22c55e;color:white;border-radius:3px;padding:1px 4px;font-size:7px;">🔒 Chiffré</span>
+          </div>
+          <!-- Tabs -->
+          <div style="display:flex;border-bottom:1px solid #2a3050;background:#161b27;">
+            <div style="padding:5px 10px;font-size:8px;color:#6366f1;border-bottom:2px solid #6366f1;cursor:pointer;">👁 Aperçu</div>
+            <div style="padding:5px 10px;font-size:8px;color:#8b8fa8;cursor:pointer;">✏️ Modifier</div>
+            <div style="padding:5px 10px;font-size:8px;color:#8b8fa8;cursor:pointer;">ℹ️ Infos</div>
+          </div>
+          <!-- Preview area -->
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;background:#0a0d14;">
+            <div style="text-align:center;color:#8b8fa8;">
+              <div style="font-size:40px;margin-bottom:8px;">📄</div>
+              <div style="font-size:9px;color:#6366f1;font-weight:600;">Rapport_Annuel.pdf</div>
+              <div style="font-size:8px;margin-top:3px;">Aperçu PDF intégré</div>
+              <div style="font-size:7px;margin-top:2px;color:#4b5280;">(iframe / PDF.js)</div>
+            </div>
+          </div>
+          <!-- Actions footer -->
+          <div style="padding:8px 10px;background:#161b27;border-top:1px solid #2a3050;display:flex;gap:5px;flex-wrap:wrap;">
+            <button style="background:#6366f1;color:white;border:none;border-radius:4px;padding:4px 8px;font-size:8px;cursor:pointer;flex:1;">⬇ Télécharger</button>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:4px;padding:4px 8px;font-size:8px;cursor:pointer;">⭐ Favori</button>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:4px;padding:4px 8px;font-size:8px;cursor:pointer;">↗ Partager</button>
+            <button style="background:#1e2538;color:#ef4444;border:1px solid #ef4444;border-radius:4px;padding:4px 8px;font-size:8px;cursor:pointer;">🗑</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. Onglet "Modifier" — selon le type de fichier</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Fichier texte / code (.txt .md .js…)</div>
+      <div class="mockup-body" style="background:#0a0d14;padding:10px;font-size:9px;">
+        <div style="background:#161b27;border:1px solid #2a3050;border-radius:6px;overflow:hidden;">
+          <div style="padding:4px 8px;background:#1e2538;border-bottom:1px solid #2a3050;display:flex;justify-content:space-between;">
+            <span style="color:#8b8fa8;">Notes_Reunion.md</span>
+            <button style="background:#6366f1;color:white;border:none;border-radius:3px;padding:2px 6px;font-size:7px;cursor:pointer;">💾 Sauvegarder</button>
+          </div>
+          <textarea style="width:100%;min-height:120px;background:#0a0d14;color:#c5c8d6;border:none;padding:8px;font-family:monospace;font-size:8px;resize:none;box-sizing:border-box;" readonly># Notes de réunion
+## 30 juin 2026
+
+- Présentation du projet fil rouge
+- Architecture validée
+- Prochaine étape : tests unitaires</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">Image (.jpg .png .gif…)</div>
+      <div class="mockup-body" style="background:#0a0d14;padding:10px;font-size:9px;">
+        <div style="background:#161b27;border:1px solid #2a3050;border-radius:6px;overflow:hidden;">
+          <div style="padding:4px 8px;background:#1e2538;border-bottom:1px solid #2a3050;display:flex;gap:4px;align-items:center;">
+            <span style="color:#8b8fa8;">Outils :</span>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:3px;padding:2px 5px;font-size:7px;cursor:pointer;">↺ Rotation</button>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:3px;padding:2px 5px;font-size:7px;cursor:pointer;">✂ Recadrer</button>
+            <button style="background:#1e2538;color:#c5c8d6;border:1px solid #2a3050;border-radius:3px;padding:2px 5px;font-size:7px;cursor:pointer;">◑ N&B</button>
+            <button style="background:#6366f1;color:white;border:none;border-radius:3px;padding:2px 6px;font-size:7px;cursor:pointer;margin-left:auto;">💾 Sauver</button>
+          </div>
+          <div style="min-height:120px;display:flex;align-items:center;justify-content:center;background:#0a0d14;">
+            <div style="width:100px;height:80px;background:linear-gradient(135deg,#1e2538,#6366f1);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:24px;">🖼</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. Récents / Favoris / Corbeille — même layout 3 colonnes</h3>
+  <div class="mockup">
+    <div class="mockup-header">Vue "Favoris" — même structure, liste filtrée</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;border-radius:0 0 8px 8px;">
+      <div style="display:flex;height:140px;font-size:9px;color:#8b8fa8;">
+        <div style="width:80px;background:#161b27;border-right:1px solid #2a3050;padding:8px 6px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <div style="color:#8b8fa8;padding:3px 5px;font-size:8px;text-align:center;">📁 Fichiers</div>
+          <div style="color:#8b8fa8;padding:3px 5px;font-size:8px;text-align:center;">⏱ Récents</div>
+          <div style="background:#6366f1;color:white;border-radius:4px;padding:3px 5px;font-size:8px;text-align:center;">⭐ Favoris</div>
+          <div style="color:#8b8fa8;padding:3px 5px;font-size:8px;text-align:center;">🗑 Corbeille</div>
+        </div>
+        <div style="width:220px;border-right:1px solid #2a3050;background:#0f1117;padding:6px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;">
+          <div style="color:#f59e0b;font-size:8px;font-weight:600;padding:2px 4px;">⭐ 5 fichiers favoris</div>
+          <div style="background:#1e2a45;border:1px solid #6366f1;border-radius:4px;padding:5px 7px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <span>📄</span><div style="font-size:8px;color:#e2e5f0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Rapport_Annuel.pdf</div>
+          </div>
+          <div style="background:#161b27;border-radius:4px;padding:5px 7px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <span>📊</span><div style="font-size:8px;color:#c5c8d6;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Budget_Q3.xlsx</div>
+          </div>
+          <div style="background:#161b27;border-radius:4px;padding:5px 7px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <span>📄</span><div style="font-size:8px;color:#c5c8d6;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CV_Antoine_2025.pdf</div>
+          </div>
+        </div>
+        <div style="flex:1;background:#0f1117;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;color:#8b8fa8;font-size:8px;">
+            <div style="font-size:22px;margin-bottom:4px;">📄</div>
+            <div style="color:#6366f1;font-weight:600;">Rapport_Annuel.pdf</div>
+            <div style="margin-top:4px;">Aperçu + actions identiques</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="background:#1a1f2e;border:1px solid #2a3050;border-radius:8px;padding:16px;">
+  <h3 style="margin-top:0;">Récap — Ce qu'on va construire</h3>
+  <ul style="font-size:12px;color:#c5c8d6;line-height:1.8;margin:0;padding-left:20px;">
+    <li><strong style="color:#6366f1;">Layout 3 colonnes</strong> — sidebar nav existante · liste fichiers + breadcrumb · panneau aperçu</li>
+    <li><strong style="color:#6366f1;">Navigation dossiers</strong> — clic sur dossier entre dedans, breadcrumb pour remonter</li>
+    <li><strong style="color:#6366f1;">Panneau aperçu</strong> — 3 onglets : Aperçu · Modifier · Infos</li>
+    <li><strong style="color:#6366f1;">Éditeur texte/code</strong> — textarea avec sauvegarde (fichiers .txt .md .js .py etc.)</li>
+    <li><strong style="color:#6366f1;">Éditeur image</strong> — rotation, recadrage, filtre N&amp;B (canvas browser)</li>
+    <li><strong style="color:#6366f1;">Aperçu PDF</strong> — iframe natif du navigateur</li>
+    <li><strong style="color:#6366f1;">Aperçu image/vidéo</strong> — balises &lt;img&gt; et &lt;video&gt; directement</li>
+    <li><strong style="color:#6366f1;">Actions</strong> — Télécharger · Favori · Partager · Supprimer (dans le footer du panneau)</li>
+    <li><strong style="color:#6366f1;">Récents / Favoris / Corbeille</strong> — même layout 3 colonnes, liste filtrée à gauche</li>
+  </ul>
+</div>
