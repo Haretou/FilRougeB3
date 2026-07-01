@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS contacts (
   CONSTRAINT fk_contacts_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY uq_owner_email (owner_id, email)
 );
+
+CREATE INDEX idx_contacts_owner ON contacts(owner_id);
