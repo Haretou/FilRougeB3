@@ -17,6 +17,12 @@ import {
   encryptFileForUpload,
 } from "@/lib/crypto";
 
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface VaultFile {
   id: string;
   name: string;
@@ -70,6 +76,8 @@ export default function FileExplorer({ filter }: Props) {
   const [shareModal, setShareModal] = useState<VaultFile | null>(null);
   const [shareEmail, setShareEmail] = useState("");
   const [shareMsg, setShareMsg] = useState("");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -187,6 +195,26 @@ export default function FileExplorer({ filter }: Props) {
     loadFiles();
   };
 
+  const openShareModal = async (f: VaultFile) => {
+    setShareModal(f);
+    setShareMsg("");
+    setShareEmail("");
+    setSelectedContact(null);
+    const res = await fetch("/api/contacts");
+    if (res.ok) setContacts(await res.json());
+    else setContacts([]);
+  };
+
+  const handleContactSelect = (c: Contact) => {
+    if (selectedContact?.id === c.id) {
+      setSelectedContact(null);
+      setShareEmail("");
+    } else {
+      setSelectedContact(c);
+      setShareEmail(c.email);
+    }
+  };
+
   const handleShare = async () => {
     if (!shareModal || !shareEmail) return;
     setShareMsg("");
@@ -216,7 +244,7 @@ export default function FileExplorer({ filter }: Props) {
       });
       const data = await res.json();
       setShareMsg(res.ok ? "Fichier partagé avec succès !" : (data.error ?? "Erreur"));
-      if (res.ok) setShareEmail("");
+      if (res.ok) { setShareEmail(""); setSelectedContact(null); }
     } catch {
       setShareMsg("Erreur lors du partage");
     }
@@ -255,7 +283,7 @@ export default function FileExplorer({ filter }: Props) {
             onClose={() => setSelectedFile(null)}
             onStarToggle={handleStarToggle}
             onDelete={handleDelete}
-            onShare={(f) => { setShareModal(f); setShareMsg(""); setShareEmail(""); }}
+            onShare={(f) => { openShareModal(f); }}
             onSaved={loadFiles}
             isTrash={filter === "trash"}
             onRestore={handleRestore}
@@ -278,13 +306,67 @@ export default function FileExplorer({ filter }: Props) {
               <h3 className="text-lg font-semibold text-foreground">Partager</h3>
               <button onClick={() => setShareModal(null)} className="text-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-muted truncate">{shareModal.name}</p>
-            <div className="flex gap-2">
-              <input type="email" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)}
-                placeholder="email@exemple.com"
-                className="flex-1 bg-background border border-border rounded-lg py-2 px-3 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              <button onClick={handleShare} className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">Partager</button>
-            </div>
+            <p className="text-sm text-muted truncate">📄 {shareModal.name}</p>
+
+            {/* Contacts picker */}
+            {contacts.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Mes contacts</p>
+                <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+                  {contacts.map((c) => {
+                    const selected = selectedContact?.id === c.id;
+                    const avatarColors = ["bg-indigo-500","bg-emerald-500","bg-amber-500","bg-rose-500","bg-sky-500","bg-violet-500"];
+                    const color = avatarColors[c.name.charCodeAt(0) % avatarColors.length];
+                    const inits = c.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => handleContactSelect(c)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
+                          selected ? "bg-primary text-white" : "bg-background hover:bg-card-hover"
+                        }`}
+                      >
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${selected ? "bg-white/20" : color}`}>
+                          {inits}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-semibold truncate ${selected ? "text-white" : "text-foreground"}`}>{c.name}</p>
+                          <p className={`text-xs truncate ${selected ? "text-white/70" : "text-muted"}`}>{c.email}</p>
+                        </div>
+                        {selected && <span className="text-white text-sm shrink-0">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            {contacts.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted">ou saisir manuellement</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            )}
+
+            {/* Manual email */}
+            <input
+              type="email"
+              value={shareEmail}
+              onChange={(e) => { setShareEmail(e.target.value); setSelectedContact(null); }}
+              placeholder="email@exemple.com"
+              className="w-full bg-background border border-border rounded-lg py-2 px-3 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+            />
+
+            <button
+              onClick={handleShare}
+              disabled={!shareEmail}
+              className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 text-white font-medium py-2 rounded-lg text-sm transition-all"
+            >
+              {selectedContact ? `↗ Partager avec ${selectedContact.name}` : "↗ Partager"}
+            </button>
+
             {shareMsg && <p className={`text-sm ${shareMsg.includes("succès") ? "text-success" : "text-danger"}`}>{shareMsg}</p>}
           </div>
         </div>

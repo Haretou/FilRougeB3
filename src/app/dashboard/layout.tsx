@@ -89,6 +89,7 @@ export default function DashboardLayout({
     { icon: Trash2,       label: "Corbeille",      href: "/dashboard/trash" },
     { icon: KeyRound,     label: "Mots de passe",  href: "/dashboard/passwords" },
     { icon: Activity,     label: "Activité",       href: "/dashboard/activity" },
+    { icon: Users,        label: "Contacts",        href: "/dashboard/contacts" },
   ];
 
   return (
