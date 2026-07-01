@@ -1,7 +1,7 @@
 // src/app/dashboard/_components/FileList.tsx
 "use client";
 
-import { FolderClosed, FileText, Image, Film, FileArchive, Star, Lock, ChevronRight, Home, Plus, Upload } from "lucide-react";
+import { FolderClosed, FileText, Image, Film, FileArchive, Star, Lock, ChevronRight, ArrowLeft, Home, Plus, Upload } from "lucide-react";
 
 interface VaultFile {
   id: string;
@@ -69,6 +69,15 @@ export default function FileList({
       {/* Breadcrumb — only for main file view */}
       {!filter && (
         <div className="flex items-center gap-1 px-3 py-2.5 border-b border-border bg-card text-xs text-muted overflow-x-auto shrink-0">
+          {breadcrumb.length > 1 && (
+            <button
+              onClick={() => onBreadcrumbNav(breadcrumb.length - 2)}
+              className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-card-hover text-muted hover:text-foreground transition-all shrink-0 mr-1"
+              title="Retour"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+          )}
           {breadcrumb.map((item, i) => (
             <span key={i} className="flex items-center gap-1 shrink-0">
               {i > 0 && <ChevronRight className="w-3 h-3 text-border" />}

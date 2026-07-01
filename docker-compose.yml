@@ -9,6 +9,11 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=mysql://safelock:safelock_secret@db:3306/safelock
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=safelock_admin
+      - MINIO_SECRET_KEY=safelock_minio_secret
+      - MINIO_BUCKET=safelock
     depends_on:
       db:
         condition: service_healthy
