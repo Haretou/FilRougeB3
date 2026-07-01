@@ -12,6 +12,7 @@ interface VaultFile {
   sizeBytes: number;
   isFolder: boolean;
   isStarred: boolean;
+  parentFolderId: string | null;
   createdAt: string;
   updatedAt: string;
 }

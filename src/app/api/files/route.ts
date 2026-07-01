@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const filter = searchParams.get('filter');
 
   let query = '';
-  let params: unknown[] = [user.id];
+  let params: any[] = [user.id];
 
   if (filter === 'starred') {
     query = `SELECT id, name_encrypted, mime_type_encrypted, size_bytes, is_folder, is_starred, is_deleted, created_at, updated_at, parent_folder_id

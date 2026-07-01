@@ -20,7 +20,7 @@ export async function PATCH(
   if (!rows.length) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
   const fields: string[] = [];
-  const values: unknown[] = [];
+  const values: any[] = [];
 
   if (body.siteName)  { fields.push('site_name = ?');      values.push(body.siteName); }
   if (body.username !== undefined) { fields.push('username = ?'); values.push(body.username); }
