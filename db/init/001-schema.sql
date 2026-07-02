@@ -5,11 +5,14 @@ CREATE TABLE IF NOT EXISTS users (
     id CHAR(36) PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     name_encrypted BLOB NOT NULL,              -- Nom chiffre cote client
-    master_password_hash VARCHAR(255) NOT NULL, -- Hash du hash (le client hash d'abord, le serveur re-hash)
-    salt CHAR(64) NOT NULL,                     -- Salt pour la derivation de cle (Argon2id)
-    recovery_key_hash VARCHAR(255),             -- Hash de la cle de recuperation
-    encrypted_private_key BLOB,                 -- Cle privee chiffree par la master key
-    public_key BLOB,                            -- Cle publique (pour le partage)
+    master_password_hash VARCHAR(255) NOT NULL, -- bcrypt(authHash) — le mdp maitre n'arrive jamais au serveur
+    salt CHAR(64) NOT NULL,                     -- Sel Argon2id (derivation de la cle maitre)
+    encrypted_vault_key BLOB NOT NULL,          -- vaultKey chiffree par la cle derivee du mdp maitre
+    public_key BLOB NOT NULL,                   -- Cle publique RSA (enrobage des cles de fichiers partages)
+    encrypted_private_key BLOB NOT NULL,        -- Cle privee RSA chiffree par la vaultKey
+    recovery_key_hash VARCHAR(255),             -- bcrypt(authHash du code de recuperation)
+    recovery_salt CHAR(64),                     -- Sel Argon2id du code de recuperation
+    recovery_encrypted_vault_key BLOB,          -- vaultKey chiffree par la cle derivee du code de recuperation
     storage_used_bytes BIGINT DEFAULT 0,
     storage_limit_bytes BIGINT DEFAULT 10737418240, -- 10 Go par defaut
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -77,11 +80,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE TABLE IF NOT EXISTS passwords (
     id CHAR(36) PRIMARY KEY,
     owner_id CHAR(36) NOT NULL,
-    site_name VARCHAR(255) NOT NULL,
-    username VARCHAR(255) DEFAULT '',
-    password_value TEXT NOT NULL,
-    url VARCHAR(500) DEFAULT '',
-    notes TEXT,
+    site_name VARCHAR(255) NOT NULL,            -- En clair (libelle d'affichage)
+    username VARCHAR(255) DEFAULT '',           -- Chiffre cote client (AES-256-GCM)
+    password_value TEXT NOT NULL,               -- Chiffre cote client (AES-256-GCM)
+    url VARCHAR(500) DEFAULT '',                -- En clair (libelle / favicon)
+    notes TEXT,                                 -- Chiffre cote client (AES-256-GCM)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE

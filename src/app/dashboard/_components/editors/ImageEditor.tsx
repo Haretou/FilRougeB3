@@ -3,15 +3,17 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { RotateCcw, RotateCw, Crop, Save, Loader2, RefreshCw } from "lucide-react";
+import { requireVaultKey, fetchAndDecrypt, encryptContentForUpdate } from "@/lib/crypto";
 
 interface Props {
   fileId: string;
   fileName: string;
   mimeType: string;
+  fileKeyEnc: string;
   onSaved?: () => void;
 }
 
-export default function ImageEditor({ fileId, fileName, mimeType, onSaved }: Props) {
+export default function ImageEditor({ fileId, fileName, mimeType, fileKeyEnc, onSaved }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [originalSrc, setOriginalSrc] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -28,14 +30,21 @@ export default function ImageEditor({ fileId, fileName, mimeType, onSaved }: Pro
     setGrayscale(false);
     setCrop({ x: 0, y: 0, w: 100, h: 100, enabled: false });
     setMsg(null);
-    fetch(`/api/files/${fileId}/download`)
-      .then((r) => r.blob())
-      .then((blob) => setOriginalSrc(URL.createObjectURL(blob)))
-      .catch(() => setOriginalSrc(null))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const vk = await requireVaultKey();
+        const bytes = await fetchAndDecrypt(fileId, fileKeyEnc, vk);
+        const blob = new Blob([bytes as BufferSource], { type: mimeType });
+        setOriginalSrc(URL.createObjectURL(blob));
+      } catch {
+        setOriginalSrc(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
     return () => { if (originalSrc) URL.revokeObjectURL(originalSrc); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileId]);
+  }, [fileId, fileKeyEnc]);
 
   // Draw to canvas whenever state changes
   const drawCanvas = useCallback(() => {
@@ -94,8 +103,12 @@ export default function ImageEditor({ fileId, fileName, mimeType, onSaved }: Pro
     setMsg(null);
     canvas.toBlob(async (blob) => {
       if (!blob) { setSaving(false); return; }
+      const vk = await requireVaultKey();
+      const plain = await blob.arrayBuffer();
+      const encBlob = await encryptContentForUpdate(plain, fileKeyEnc, vk);
       const fd = new FormData();
-      fd.append("file", blob, fileName);
+      fd.append("file", encBlob, `${fileName}.enc`);
+      fd.append("sizeBytes", String(plain.byteLength));
       const res = await fetch(`/api/files/${fileId}/content`, { method: "PUT", body: fd });
       setSaving(false);
       if (res.ok) {

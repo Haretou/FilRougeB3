@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   KeyRound, Plus, Eye, EyeOff, Trash2, Pencil, Copy, Check, X, Globe,
 } from "lucide-react";
+import { requireVaultKey, getVaultKey, encryptString, decryptString } from "@/lib/crypto";
 
 interface Password {
   id: string;
@@ -26,6 +28,7 @@ interface FormState {
 const empty: FormState = { siteName: "", username: "", password: "", url: "", notes: "" };
 
 export default function PasswordsPage() {
+  const router = useRouter();
   const [passwords, setPasswords] = useState<Password[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -35,14 +38,34 @@ export default function PasswordsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => {
-    fetch("/api/passwords")
-      .then((r) => r.json())
-      .then(setPasswords)
-      .finally(() => setLoading(false));
+  const load = async () => {
+    const vk = await getVaultKey();
+    if (!vk) { router.push("/"); return; }
+    try {
+      const res = await fetch("/api/passwords");
+      const rows: Password[] = await res.json();
+      // Dechiffre les champs sensibles (mot de passe, identifiant, notes).
+      const dec = await Promise.all(
+        rows.map(async (p) => {
+          const safe = async (v: string) => {
+            if (!v) return "";
+            try { return await decryptString(vk, v); } catch { return v; }
+          };
+          return {
+            ...p,
+            password_value: await safe(p.password_value),
+            username: await safe(p.username),
+            notes: await safe(p.notes),
+          };
+        })
+      );
+      setPasswords(dec);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(load, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleVisible = (id: string) => {
     setVisibleIds((prev) => {
@@ -68,17 +91,26 @@ export default function PasswordsPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const vk = await requireVaultKey();
+      // Chiffre les champs sensibles ; site et URL restent en clair (libelles).
+      const payload = {
+        siteName: form.siteName,
+        url: form.url,
+        username: await encryptString(vk, form.username),
+        password: await encryptString(vk, form.password),
+        notes: await encryptString(vk, form.notes),
+      };
       if (editId) {
         await fetch(`/api/passwords/${editId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ siteName: form.siteName, username: form.username, password: form.password, url: form.url, notes: form.notes }),
+          body: JSON.stringify(payload),
         });
       } else {
         await fetch("/api/passwords", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
       }
       setShowForm(false);

@@ -41,8 +41,11 @@ Les fichiers sont **chiffres cote client** (AES-256-GCM) avant d'etre envoyes au
 | Stockage fichiers | MinIO (S3-compatible) | Blobs chiffres, auto-heberge, resilient |
 | Crypto client | Web Crypto API + Argon2id | Chiffrement AES-256-GCM, derivation de cle |
 | Infrastructure | Docker + Docker Compose | Containerisation, segmentation reseau, zero-trust |
-| CI/CD | GitHub Actions | Tests automatises, SAST, scan de dependances |
-| Logs / Audit | Base NoSQL (a venir) | Centralisation des evenements de securite |
+| Derivation de cle | Argon2id (hash-wasm) | Derivation de la cle maitre depuis le mot de passe |
+| Partage | RSA-OAEP 2048 (Web Crypto) | Enrobage des cles de fichiers pour un destinataire |
+| CI/CD | GitHub Actions | Lint, build, tests automatises, audit de dependances |
+| SAST | CodeQL | Analyse statique de securite du code |
+| Logs / Audit | MySQL `audit_log` | Journal des evenements de securite (metadonnees only) |
 
 ## Equipe
 
@@ -71,6 +74,23 @@ L'application sera accessible sur `http://localhost:3000`.
 npm install
 npm run dev
 ```
+> Le chiffrement utilise l'API Web Crypto, disponible uniquement en contexte
+> securise : accedez toujours a l'app via `http://localhost:3000` (jamais via une
+> IP), sinon la derivation de cle echoue.
+
+### Tests automatises
+```bash
+npm test     # tests du coeur cryptographique (derivation, AES-GCM, partage RSA, recuperation)
+npm run lint # ESLint
+```
+
+## Fonctionnalites
+
+- **Coffre-fort chiffre** : upload, apercu, edition (texte/image) et telechargement de fichiers, chiffres de bout en bout cote client (AES-256-GCM).
+- **Gestionnaire de mots de passe** : champs sensibles chiffres cote client.
+- **Partage securise** : partage d'un fichier a un autre utilisateur via enrobage RSA-OAEP de la cle du fichier — seul le destinataire peut le dechiffrer.
+- **Recuperation de compte** : code de recuperation genere a l'inscription, permettant de retrouver son coffre en cas d'oubli du mot de passe maitre (sans jamais exposer la cle au serveur).
+- **Journal d'audit** : tracabilite des evenements de securite (connexion, upload, partage, suppression...) — metadonnees uniquement, jamais le contenu.
 
 ## Structure du projet
 

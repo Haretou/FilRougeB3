@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import db from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 // GET /api/passwords
 export async function GET(request: NextRequest) {
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest) {
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [id, user.id, siteName, username ?? '', password, url ?? '', notes ?? '']
   );
+
+  await logAudit(request, user.id, 'PASSWORD_CREATE', 'password', id);
 
   return NextResponse.json({ id, siteName, username, url }, { status: 201 });
 }

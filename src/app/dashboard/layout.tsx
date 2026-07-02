@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
+  requireVaultKey,
+  getVaultKey,
+  clearVaultKey,
+  encryptFileForUpload,
+  decryptString,
+} from "@/lib/crypto";
+import {
   Shield,
   FolderClosed,
   Clock,
@@ -17,11 +24,14 @@ import {
   Plus,
   HardDrive,
   KeyRound,
+  Users,
+  Activity,
 } from "lucide-react";
 
 interface User {
   id: string;
   email: string;
+  nameEnc: string;
   name: string;
   storageUsed: number;
   storageLimit: number;
@@ -38,16 +48,27 @@ export default function DashboardLayout({
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => {
-        if (!r.ok) { router.push("/"); return null; }
-        return r.json();
-      })
-      .then((data) => data && setUser(data))
-      .catch(() => router.push("/"));
+    (async () => {
+      // Sans cle de coffre en memoire (nouvel onglet, session expiree), on ne
+      // peut rien dechiffrer : retour a l'ecran de deverrouillage.
+      const vk = await getVaultKey();
+      if (!vk) { router.push("/"); return; }
+
+      const res = await fetch("/api/auth/me");
+      if (!res.ok) { router.push("/"); return; }
+      const data = await res.json();
+      let name = "";
+      try {
+        name = await decryptString(vk, data.nameEnc);
+      } catch {
+        name = data.email;
+      }
+      setUser({ ...data, name });
+    })();
   }, [router]);
 
   const handleLogout = async () => {
+    clearVaultKey();
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
@@ -64,8 +85,10 @@ export default function DashboardLayout({
     { icon: FolderClosed, label: "Mes fichiers",  href: "/dashboard" },
     { icon: Clock,        label: "Récents",        href: "/dashboard/recent" },
     { icon: Star,         label: "Favoris",        href: "/dashboard/favorites" },
+    { icon: Users,        label: "Partagés",       href: "/dashboard/shared" },
     { icon: Trash2,       label: "Corbeille",      href: "/dashboard/trash" },
     { icon: KeyRound,     label: "Mots de passe",  href: "/dashboard/passwords" },
+    { icon: Activity,     label: "Activité",       href: "/dashboard/activity" },
   ];
 
   return (
@@ -92,8 +115,14 @@ export default function DashboardLayout({
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+                const vk = await requireVaultKey();
+                const enc = await encryptFileForUpload(vk, file);
                 const fd = new FormData();
-                fd.append("file", file);
+                fd.append("file", enc.content, `${file.name}.enc`);
+                fd.append("nameEnc", enc.nameEnc);
+                fd.append("mimeEnc", enc.mimeEnc);
+                fd.append("fileKeyEnc", enc.fileKeyEnc);
+                fd.append("sizeBytes", String(enc.sizeBytes));
                 await fetch("/api/files/upload", { method: "POST", body: fd });
                 if (pathname === "/dashboard") window.location.reload();
                 else router.push("/dashboard");

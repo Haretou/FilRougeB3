@@ -3,6 +3,7 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import db from '@/lib/db';
 import { s3, BUCKET } from '@/lib/minio';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 // DELETE /api/files/[id]/permanent — suppression définitive
 export async function DELETE(
@@ -30,6 +31,8 @@ export async function DELETE(
   }
 
   await db.execute('DELETE FROM files WHERE id = ?', [id]);
+
+  await logAudit(request, user.id, 'DELETE_PERMANENT', file.is_folder ? 'folder' : 'file', id);
 
   return NextResponse.json({ ok: true });
 }

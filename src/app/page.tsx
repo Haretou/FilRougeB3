@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, Lock, Eye, EyeOff, KeyRound, Mail, User } from "lucide-react";
+import {
+  randomSalt,
+  deriveAccount,
+  generateVaultKey,
+  wrapVaultKey,
+  unwrapVaultKey,
+  encryptString,
+  setVaultKey,
+  generateUserKeypair,
+  randomRecoveryCode,
+} from "@/lib/crypto";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,36 +24,139 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [codeSaved, setCodeSaved] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!isLogin && password.length < 8) {
+      setError("Le mot de passe doit faire au moins 8 caractères");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
-      const body = isLogin ? { email, password } : { email, password, name };
+      if (isLogin) {
+        // 1) Recupere le sel  2) derive la cle  3) authentifie avec authHash
+        const pre = await fetch(
+          `/api/auth/prelogin?email=${encodeURIComponent(email)}`
+        );
+        const { salt } = await pre.json();
+        const { authHash, wrapKey } = await deriveAccount(password, salt);
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, authHash }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? "Une erreur est survenue");
+          return;
+        }
+        // Deverrouille la cle de coffre localement
+        const vk = await unwrapVaultKey(data.encVaultKey, wrapKey);
+        await setVaultKey(vk);
+      } else {
+        // Inscription : tout est chiffre cote client avant l'envoi
+        const salt = randomSalt();
+        const { authHash, wrapKey } = await deriveAccount(password, salt);
+        const vk = await generateVaultKey();
+        const encVaultKey = await wrapVaultKey(vk, wrapKey);
+        const nameEnc = await encryptString(vk, name);
 
-      const data = await res.json();
+        // Paire RSA (partage) : cle privee chiffree par la vaultKey.
+        const { publicKey, encPrivateKey } = await generateUserKeypair(vk);
 
-      if (!res.ok) {
-        setError(data.error ?? "Une erreur est survenue");
+        // Code de recuperation : deverrouille la vaultKey si le mdp est perdu.
+        const code = randomRecoveryCode();
+        const recoverySalt = randomSalt();
+        const rec = await deriveAccount(code, recoverySalt);
+        const recoveryEncVaultKey = await wrapVaultKey(vk, rec.wrapKey);
+
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email, salt, authHash, encVaultKey, nameEnc,
+            publicKey, encPrivateKey,
+            recoverySalt, recoveryAuthHash: rec.authHash, recoveryEncVaultKey,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? "Une erreur est survenue");
+          return;
+        }
+        await setVaultKey(vk);
+        // On affiche le code de recuperation une seule fois avant d'entrer.
+        setRecoveryCode(code);
         return;
       }
 
       router.push("/dashboard");
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
   };
+
+  // Ecran affiche une seule fois apres l'inscription : le code de recuperation.
+  if (recoveryCode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto">
+            <KeyRound className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Votre code de récupération</h2>
+            <p className="text-muted mt-2 text-sm">
+              C&apos;est le <strong>seul moyen</strong> de récupérer votre coffre si vous
+              oubliez votre mot de passe maître. Nous ne pouvons pas vous le
+              redonner : notez-le et gardez-le en lieu sûr.
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-5">
+            <p className="font-mono text-lg tracking-wider text-foreground break-all select-all">
+              {recoveryCode}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(recoveryCode)}
+              className="flex-1 bg-card border border-border text-foreground py-3 rounded-lg text-sm font-medium hover:bg-card-hover transition-all"
+            >
+              Copier
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              disabled={!codeSaved}
+              className="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
+            >
+              Continuer
+            </button>
+          </div>
+          <label className="flex items-center gap-2 justify-center text-sm text-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={codeSaved}
+              onChange={(e) => setCodeSaved(e.target.checked)}
+              className="rounded border-border bg-card"
+            />
+            J&apos;ai noté mon code de récupération en lieu sûr
+          </label>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -225,6 +339,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
+                  onClick={() => router.push("/recover")}
                   className="text-primary hover:text-primary-hover transition-colors"
                 >
                   Mot de passe oublie ?

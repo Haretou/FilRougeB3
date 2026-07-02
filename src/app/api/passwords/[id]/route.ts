@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 // PATCH /api/passwords/[id]
 export async function PATCH(
@@ -53,5 +54,6 @@ export async function DELETE(
   if (!rows.length) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
   await db.execute('DELETE FROM passwords WHERE id = ?', [id]);
+  await logAudit(request, user.id, 'PASSWORD_DELETE', 'password', id);
   return NextResponse.json({ ok: true });
 }

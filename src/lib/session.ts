@@ -39,6 +39,7 @@ export async function getSessionUser(request: NextRequest) {
       s.user_id AS id,
       u.email,
       u.name_encrypted,
+      u.encrypted_private_key,
       u.storage_used_bytes,
       u.storage_limit_bytes
      FROM sessions s
@@ -50,12 +51,14 @@ export async function getSessionUser(request: NextRequest) {
   if (!rows.length) return null;
 
   const row = rows[0];
+  const asStr = (v: any) =>
+    v == null ? null : Buffer.isBuffer(v) ? v.toString('utf8') : String(v);
   return {
     id: row.id as string,
     email: row.email as string,
-    name: Buffer.isBuffer(row.name_encrypted)
-      ? row.name_encrypted.toString('utf8')
-      : String(row.name_encrypted),
+    // Blobs chiffres : le front dechiffre nom et cle privee RSA avec la vaultKey.
+    nameEnc: asStr(row.name_encrypted),
+    encPrivateKey: asStr(row.encrypted_private_key),
     storageUsed: Number(row.storage_used_bytes),
     storageLimit: Number(row.storage_limit_bytes),
   };

@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { Download, Star, Share2, Trash2, X, Lock, Loader2, FileText, Image, Film, FileArchive } from "lucide-react";
 import TextEditor from "./editors/TextEditor";
 import ImageEditor from "./editors/ImageEditor";
+import { requireVaultKey, unwrapFileKey, encryptString, fetchAndDecrypt } from "@/lib/crypto";
 
 interface VaultFile {
   id: string;
   name: string;
   mimeType: string | null;
+  fileKeyEnc: string;
   sizeBytes: number;
   isFolder: boolean;
   isStarred: boolean;
@@ -85,21 +87,23 @@ export default function FilePreviewPanel({ file, onClose, onStarToggle, onDelete
     if (file.isFolder) return;
 
     setLoadingPreview(true);
-    if (isText(file.mimeType)) {
-      fetch(`/api/files/${file.id}/download`)
-        .then((r) => r.text())
-        .then(setPreviewText)
-        .catch(() => setPreviewText(null))
-        .finally(() => setLoadingPreview(false));
-    } else if (isImage(file.mimeType) || isVideo(file.mimeType) || isPdf(file.mimeType)) {
-      fetch(`/api/files/${file.id}/download`)
-        .then((r) => r.blob())
-        .then((blob) => setPreviewUrl(URL.createObjectURL(blob)))
-        .catch(() => setPreviewUrl(null))
-        .finally(() => setLoadingPreview(false));
-    } else {
-      setLoadingPreview(false);
-    }
+    (async () => {
+      try {
+        const vk = await requireVaultKey();
+        const bytes = await fetchAndDecrypt(file.id, file.fileKeyEnc, vk);
+        if (isText(file.mimeType)) {
+          setPreviewText(new TextDecoder().decode(bytes));
+        } else if (isImage(file.mimeType) || isVideo(file.mimeType) || isPdf(file.mimeType)) {
+          const blob = new Blob([bytes as BufferSource], { type: file.mimeType ?? undefined });
+          setPreviewUrl(URL.createObjectURL(blob));
+        }
+      } catch {
+        setPreviewText(null);
+        setPreviewUrl(null);
+      } finally {
+        setLoadingPreview(false);
+      }
+    })();
 
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -108,9 +112,11 @@ export default function FilePreviewPanel({ file, onClose, onStarToggle, onDelete
   }, [file.id, tab]);
 
   const handleDownload = async () => {
-    const res = await fetch(`/api/files/${file.id}/download`);
-    if (!res.ok) return;
-    const blob = await res.blob();
+    const vk = await requireVaultKey();
+    const bytes = await fetchAndDecrypt(file.id, file.fileKeyEnc, vk);
+    const blob = new Blob([bytes as BufferSource], {
+      type: file.mimeType ?? "application/octet-stream",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = file.name; a.click();
@@ -120,10 +126,13 @@ export default function FilePreviewPanel({ file, onClose, onStarToggle, onDelete
   const handleRename = async () => {
     if (newName === file.name || !newName.trim()) return;
     setRenaming(true);
+    const vk = await requireVaultKey();
+    const fk = await unwrapFileKey(file.fileKeyEnc, vk);
+    const nameEnc = await encryptString(fk, newName.trim());
     await fetch(`/api/files/${file.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
+      body: JSON.stringify({ nameEnc }),
     });
     setRenaming(false);
     onSaved();
@@ -215,9 +224,9 @@ export default function FilePreviewPanel({ file, onClose, onStarToggle, onDelete
         {tab === "modifier" && canEdit(file.mimeType) && (
           <div className="h-full">
             {isText(file.mimeType) ? (
-              <TextEditor fileId={file.id} fileName={file.name} onSaved={onSaved} />
+              <TextEditor fileId={file.id} fileName={file.name} fileKeyEnc={file.fileKeyEnc} onSaved={onSaved} />
             ) : isImage(file.mimeType) ? (
-              <ImageEditor fileId={file.id} fileName={file.name} mimeType={file.mimeType!} onSaved={onSaved} />
+              <ImageEditor fileId={file.id} fileName={file.name} mimeType={file.mimeType!} fileKeyEnc={file.fileKeyEnc} onSaved={onSaved} />
             ) : null}
           </div>
         )}

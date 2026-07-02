@@ -4,6 +4,7 @@ import { Readable } from 'stream';
 import db from '@/lib/db';
 import { s3, BUCKET } from '@/lib/minio';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
 
   // Vérifie la propriété ou le partage
   const [owned] = await db.execute<any[]>(
-    'SELECT name_encrypted, mime_type_encrypted, storage_key, size_bytes FROM files WHERE id = ? AND owner_id = ? AND is_deleted = FALSE AND is_folder = FALSE',
+    'SELECT storage_key FROM files WHERE id = ? AND owner_id = ? AND is_deleted = FALSE AND is_folder = FALSE',
     [id, user.id]
   );
 
@@ -25,7 +26,7 @@ export async function GET(
   if (!fileRow) {
     // Vérifie si le fichier est partagé avec l'utilisateur
     const [shared] = await db.execute<any[]>(
-      `SELECT f.name_encrypted, f.mime_type_encrypted, f.storage_key, f.size_bytes
+      `SELECT f.storage_key
        FROM shared_files sf
        JOIN files f ON sf.file_id = f.id
        WHERE sf.file_id = ? AND sf.shared_with_id = ? AND f.is_deleted = FALSE`,
@@ -38,16 +39,8 @@ export async function GET(
     return NextResponse.json({ error: 'Fichier introuvable' }, { status: 404 });
   }
 
-  const filename = Buffer.isBuffer(fileRow.name_encrypted)
-    ? fileRow.name_encrypted.toString('utf8')
-    : String(fileRow.name_encrypted);
-
-  const mimeType = fileRow.mime_type_encrypted
-    ? Buffer.isBuffer(fileRow.mime_type_encrypted)
-      ? fileRow.mime_type_encrypted.toString('utf8')
-      : String(fileRow.mime_type_encrypted)
-    : 'application/octet-stream';
-
+  // Le blob renvoye est chiffre : le nom et le type MIME sont inconnus du
+  // serveur, c'est le client qui dechiffre et nomme le fichier.
   const { Body, ContentLength } = await s3.send(
     new GetObjectCommand({ Bucket: BUCKET, Key: fileRow.storage_key })
   );
@@ -56,12 +49,13 @@ export async function GET(
     return NextResponse.json({ error: 'Fichier introuvable dans le stockage' }, { status: 404 });
   }
 
+  await logAudit(request, user.id, 'DOWNLOAD', 'file', id);
+
   const webStream = Readable.toWeb(Body as Readable) as ReadableStream;
 
   return new NextResponse(webStream, {
     headers: {
-      'Content-Type': mimeType,
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Type': 'application/octet-stream',
       ...(ContentLength ? { 'Content-Length': String(ContentLength) } : {}),
     },
   });

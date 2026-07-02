@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import db from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 // GET /api/files/[id]/share  — liste les partages d'un fichier
 export async function GET(
@@ -56,10 +57,16 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
   const { id } = await params;
-  const { email, permission = 'read', expiresAt } = await request.json();
+  const { email, permission = 'read', expiresAt, fileKeyEncrypted } = await request.json();
 
   if (!email) {
     return NextResponse.json({ error: 'Email manquant' }, { status: 400 });
+  }
+
+  // La cle du fichier, enrobee avec la cle publique RSA du destinataire, est
+  // indispensable : sans elle il ne pourrait pas dechiffrer le fichier.
+  if (!fileKeyEncrypted) {
+    return NextResponse.json({ error: 'Clé de partage manquante' }, { status: 400 });
   }
 
   if (!['read', 'write'].includes(permission)) {
@@ -68,11 +75,14 @@ export async function POST(
 
   // Vérifie la propriété du fichier
   const [owned] = await db.execute<any[]>(
-    'SELECT id FROM files WHERE id = ? AND owner_id = ? AND is_deleted = FALSE',
+    'SELECT id, is_folder FROM files WHERE id = ? AND owner_id = ? AND is_deleted = FALSE',
     [id, user.id]
   );
   if (!owned.length) {
     return NextResponse.json({ error: 'Fichier introuvable' }, { status: 404 });
+  }
+  if (owned[0].is_folder) {
+    return NextResponse.json({ error: 'Le partage de dossier n\'est pas supporté' }, { status: 400 });
   }
 
   // Trouve l'utilisateur destinataire
@@ -94,6 +104,8 @@ export async function POST(
     );
   }
 
+  const sharedKey = Buffer.from(fileKeyEncrypted, 'utf8');
+
   // Vérifie si déjà partagé
   const [existing] = await db.execute<any[]>(
     'SELECT id FROM shared_files WHERE file_id = ? AND shared_with_id = ?',
@@ -102,18 +114,21 @@ export async function POST(
 
   if (existing.length) {
     await db.execute(
-      'UPDATE shared_files SET permission = ?, expires_at = ? WHERE file_id = ? AND shared_with_id = ?',
-      [permission, expiresAt ?? null, id, target[0].id]
+      'UPDATE shared_files SET permission = ?, expires_at = ?, file_key_encrypted = ? WHERE file_id = ? AND shared_with_id = ?',
+      [permission, expiresAt ?? null, sharedKey, id, target[0].id]
     );
+    await logAudit(request, user.id, 'SHARE', 'file', id, { with: email, updated: true });
     return NextResponse.json({ ok: true, updated: true });
   }
 
   await db.execute(
     `INSERT INTO shared_files
       (id, file_id, shared_by_id, shared_with_id, file_key_encrypted, permission, expires_at)
-     VALUES (?, ?, ?, ?, '', ?, ?)`,
-    [uuidv4(), id, user.id, target[0].id, permission, expiresAt ?? null]
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [uuidv4(), id, user.id, target[0].id, sharedKey, permission, expiresAt ?? null]
   );
+
+  await logAudit(request, user.id, 'SHARE', 'file', id, { with: email });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }
@@ -149,6 +164,8 @@ export async function DELETE(
     'DELETE FROM shared_files WHERE file_id = ? AND shared_with_id = ?',
     [id, target[0].id]
   );
+
+  await logAudit(request, user.id, 'UNSHARE', 'file', id, { with: email });
 
   return NextResponse.json({ ok: true });
 }

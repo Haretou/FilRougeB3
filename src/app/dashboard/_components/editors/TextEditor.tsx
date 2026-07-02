@@ -3,14 +3,16 @@
 
 import { useEffect, useState } from "react";
 import { Save, Loader2 } from "lucide-react";
+import { requireVaultKey, fetchAndDecrypt, encryptContentForUpdate } from "@/lib/crypto";
 
 interface Props {
   fileId: string;
   fileName: string;
+  fileKeyEnc: string;
   onSaved?: () => void;
 }
 
-export default function TextEditor({ fileId, fileName, onSaved }: Props) {
+export default function TextEditor({ fileId, fileName, fileKeyEnc, onSaved }: Props) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,20 +22,29 @@ export default function TextEditor({ fileId, fileName, onSaved }: Props) {
     setLoading(true);
     setContent("");
     setMsg(null);
-    fetch(`/api/files/${fileId}/download`)
-      .then((r) => r.text())
-      .then((text) => setContent(text))
-      .catch(() => setContent(""))
-      .finally(() => setLoading(false));
-  }, [fileId]);
+    (async () => {
+      try {
+        const vk = await requireVaultKey();
+        const bytes = await fetchAndDecrypt(fileId, fileKeyEnc, vk);
+        setContent(new TextDecoder().decode(bytes));
+      } catch {
+        setContent("");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fileId, fileKeyEnc]);
 
   const handleSave = async () => {
     setSaving(true);
     setMsg(null);
     try {
-      const blob = new Blob([content], { type: "text/plain" });
+      const vk = await requireVaultKey();
+      const plain = new TextEncoder().encode(content);
+      const blob = await encryptContentForUpdate(plain, fileKeyEnc, vk);
       const fd = new FormData();
-      fd.append("file", blob, fileName);
+      fd.append("file", blob, `${fileName}.enc`);
+      fd.append("sizeBytes", String(plain.byteLength));
       const res = await fetch(`/api/files/${fileId}/content`, { method: "PUT", body: fd });
       if (res.ok) {
         setMsg({ text: "Sauvegardé !", ok: true });

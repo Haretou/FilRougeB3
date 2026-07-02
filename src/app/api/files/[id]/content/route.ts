@@ -29,25 +29,27 @@ export async function PUT(
   const file = formData.get('file') as File | null;
   if (!file) return NextResponse.json({ error: 'Fichier manquant' }, { status: 400 });
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  // Le contenu recu est deja chiffre cote client. sizeBytes = taille en clair
+  // (fournie par le client) pour un affichage coherent des quotas.
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const plainSize = Number(formData.get('sizeBytes') ?? buffer.length);
 
   await s3.send(
     new PutObjectCommand({
       Bucket: BUCKET,
       Key: storage_key,
       Body: buffer,
-      ContentType: file.type || 'application/octet-stream',
+      ContentType: 'application/octet-stream',
       ContentLength: buffer.length,
     })
   );
 
-  const sizeDiff = buffer.length - Number(oldSize);
-  await db.execute('UPDATE files SET size_bytes = ?, updated_at = NOW() WHERE id = ?', [buffer.length, id]);
+  const sizeDiff = plainSize - Number(oldSize);
+  await db.execute('UPDATE files SET size_bytes = ?, updated_at = NOW() WHERE id = ?', [plainSize, id]);
   await db.execute(
     'UPDATE users SET storage_used_bytes = GREATEST(0, storage_used_bytes + ?) WHERE id = ?',
     [sizeDiff, user.id]
   );
 
-  return NextResponse.json({ ok: true, sizeBytes: buffer.length });
+  return NextResponse.json({ ok: true, sizeBytes: plainSize });
 }

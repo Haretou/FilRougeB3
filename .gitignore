@@ -43,3 +43,7 @@ AGENTS.md
 CLAUDE.md
 AGENTS.md
 CLAUDE.md
+
+# Supports d'oral et de presentation (garder hors du repo)
+docs/oral-*.md
+*.pptx

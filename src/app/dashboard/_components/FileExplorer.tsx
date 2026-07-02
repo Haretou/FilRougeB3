@@ -2,14 +2,41 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import FileList from "./FileList";
 import FilePreviewPanel from "./FilePreviewPanel";
 import { X } from "lucide-react";
+import {
+  requireVaultKey,
+  unwrapFileKey,
+  decryptString,
+  encryptString,
+  generateFileKey,
+  wrapFileKey,
+  wrapFileKeyForRecipient,
+  encryptFileForUpload,
+} from "@/lib/crypto";
 
 export interface VaultFile {
   id: string;
   name: string;
   mimeType: string | null;
+  /** Cle du fichier chiffree par la vaultKey (necessaire pour dechiffrer). */
+  fileKeyEnc: string;
+  sizeBytes: number;
+  isFolder: boolean;
+  isStarred: boolean;
+  parentFolderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Forme brute renvoyee par l'API (blobs chiffres).
+interface EncryptedFile {
+  id: string;
+  nameEnc: string;
+  mimeEnc: string | null;
+  fileKeyEnc: string;
   sizeBytes: number;
   isFolder: boolean;
   isStarred: boolean;
@@ -34,6 +61,7 @@ const FILTER_LABELS: Record<string, string> = {
 };
 
 export default function FileExplorer({ filter }: Props) {
+  const router = useRouter();
   const [files, setFiles] = useState<VaultFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<VaultFile | null>(null);
@@ -53,11 +81,35 @@ export default function FileExplorer({ filter }: Props) {
         url += currentFolderId ? `?parentId=${currentFolderId}` : "";
       }
       const res = await fetch(url);
-      if (res.ok) setFiles(await res.json());
+      if (!res.ok) return;
+      const raw: EncryptedFile[] = await res.json();
+
+      let vk;
+      try {
+        vk = await requireVaultKey();
+      } catch {
+        router.push("/"); // coffre verrouille -> reconnexion
+        return;
+      }
+
+      // Dechiffre nom + type de chaque entree avec sa cle de fichier.
+      const decrypted = await Promise.all(
+        raw.map(async (r): Promise<VaultFile> => {
+          try {
+            const fk = await unwrapFileKey(r.fileKeyEnc, vk);
+            const name = await decryptString(fk, r.nameEnc);
+            const mimeType = r.mimeEnc ? await decryptString(fk, r.mimeEnc) : null;
+            return { ...r, name, mimeType };
+          } catch {
+            return { ...r, name: "⚠ Déchiffrement impossible", mimeType: null };
+          }
+        })
+      );
+      setFiles(decrypted);
     } finally {
       setLoading(false);
     }
-  }, [filter, currentFolderId]);
+  }, [filter, currentFolderId, router]);
 
   useEffect(() => { loadFiles(); }, [loadFiles]);
 
@@ -75,8 +127,14 @@ export default function FileExplorer({ filter }: Props) {
   };
 
   const handleUpload = async (file: File, parentFolderId: string | null) => {
+    const vk = await requireVaultKey();
+    const enc = await encryptFileForUpload(vk, file);
     const fd = new FormData();
-    fd.append("file", file);
+    fd.append("file", enc.content, `${file.name}.enc`);
+    fd.append("nameEnc", enc.nameEnc);
+    fd.append("mimeEnc", enc.mimeEnc);
+    fd.append("fileKeyEnc", enc.fileKeyEnc);
+    fd.append("sizeBytes", String(enc.sizeBytes));
     if (parentFolderId) fd.append("parentFolderId", parentFolderId);
     await fetch("/api/files/upload", { method: "POST", body: fd });
     loadFiles();
@@ -85,10 +143,14 @@ export default function FileExplorer({ filter }: Props) {
   const handleNewFolder = async (parentFolderId: string | null) => {
     const name = prompt("Nom du dossier :");
     if (!name?.trim()) return;
+    const vk = await requireVaultKey();
+    const fk = await generateFileKey();
+    const nameEnc = await encryptString(fk, name.trim());
+    const fileKeyEnc = await wrapFileKey(fk, vk);
     await fetch("/api/files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), parentFolderId }),
+      body: JSON.stringify({ nameEnc, fileKeyEnc, parentFolderId }),
     });
     loadFiles();
   };
@@ -127,14 +189,37 @@ export default function FileExplorer({ filter }: Props) {
 
   const handleShare = async () => {
     if (!shareModal || !shareEmail) return;
-    const res = await fetch(`/api/files/${shareModal.id}/share`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: shareEmail, permission: "read" }),
-    });
-    const data = await res.json();
-    setShareMsg(res.ok ? "Fichier partagé avec succès !" : (data.error ?? "Erreur"));
-    if (res.ok) setShareEmail("");
+    setShareMsg("");
+    try {
+      const vk = await requireVaultKey();
+
+      // Recupere la cle publique du destinataire.
+      const pk = await fetch(`/api/users/pubkey?email=${encodeURIComponent(shareEmail)}`);
+      const pkData = await pk.json();
+      if (!pk.ok) {
+        setShareMsg(pkData.error ?? "Destinataire introuvable");
+        return;
+      }
+
+      // Enrobe la cle du fichier avec la cle publique RSA du destinataire :
+      // lui seul pourra la dechiffrer avec sa cle privee.
+      const fileKeyEncrypted = await wrapFileKeyForRecipient(
+        shareModal.fileKeyEnc,
+        vk,
+        pkData.publicKey
+      );
+
+      const res = await fetch(`/api/files/${shareModal.id}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: shareEmail, permission: "read", fileKeyEncrypted }),
+      });
+      const data = await res.json();
+      setShareMsg(res.ok ? "Fichier partagé avec succès !" : (data.error ?? "Erreur"));
+      if (res.ok) setShareEmail("");
+    } catch {
+      setShareMsg("Erreur lors du partage");
+    }
   };
 
   return (

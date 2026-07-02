@@ -7,6 +7,7 @@ interface VaultFile {
   id: string;
   name: string;
   mimeType: string | null;
+  fileKeyEnc: string;
   sizeBytes: number;
   isFolder: boolean;
   isStarred: boolean;

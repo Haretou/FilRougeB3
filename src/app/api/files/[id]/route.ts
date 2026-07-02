@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
+import { logAudit } from '@/lib/audit';
 
 // GET /api/files/[id]  — métadonnées d'un fichier
 export async function GET(
@@ -22,11 +23,13 @@ export async function GET(
   }
 
   const r = rows[0];
+  const asStr = (v: any) =>
+    v == null ? null : Buffer.isBuffer(v) ? v.toString('utf8') : String(v);
   return NextResponse.json({
     id: r.id,
-    name: Buffer.isBuffer(r.name_encrypted)
-      ? r.name_encrypted.toString('utf8')
-      : String(r.name_encrypted),
+    nameEnc: asStr(r.name_encrypted),
+    mimeEnc: asStr(r.mime_type_encrypted),
+    fileKeyEnc: asStr(r.file_key_encrypted),
     sizeBytes: Number(r.size_bytes),
     isFolder: Boolean(r.is_folder),
     isStarred: Boolean(r.is_starred),
@@ -62,16 +65,16 @@ export async function PATCH(
     ]);
   }
 
-  if (typeof body.name === 'string') {
-    const nameEncrypted = Buffer.from(body.name, 'utf8');
+  if (typeof body.nameEnc === 'string') {
     await db.execute('UPDATE files SET name_encrypted = ? WHERE id = ?', [
-      nameEncrypted,
+      Buffer.from(body.nameEnc, 'utf8'),
       id,
     ]);
   }
 
   if (body.restore === true) {
     await db.execute('UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE id = ?', [id]);
+    await logAudit(request, user.id, 'RESTORE', 'file', id);
   }
 
   if ('parentFolderId' in body) {
@@ -111,6 +114,8 @@ export async function DELETE(
     'UPDATE users SET storage_used_bytes = GREATEST(0, storage_used_bytes - ?) WHERE id = ?',
     [Number(rows[0].size_bytes), user.id]
   );
+
+  await logAudit(request, user.id, 'DELETE', 'file', id);
 
   return NextResponse.json({ ok: true });
 }
