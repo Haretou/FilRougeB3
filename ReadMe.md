@@ -129,6 +129,5 @@ safelock/
 - **Suivi des taches** : Trello
 - **Communication** : Teams
 
-## Licence
 
-Projet academique - Ynov Campus Montpellier - UF CYBER B3 - 2026
+Ynov Campus Montpellier -  CYBER B3 - 2026
