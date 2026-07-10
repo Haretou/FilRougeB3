@@ -1,133 +1,133 @@
-# SafeLock - Coffre-Fort Numerique Personnel
+# SafeLock - Personal Digital Vault
 
-Solution de stockage cloud **zero-knowledge** permettant aux particuliers de stocker, synchroniser et partager leurs fichiers sensibles en toute confidentialite.
+A **zero-knowledge** cloud storage solution allowing individuals to store, synchronize, and share their sensitive files with full confidentiality.
 
-## Principe
+## Principle
 
-Les fichiers sont **chiffres cote client** (AES-256-GCM) avant d'etre envoyes au serveur. La cle de chiffrement est derivee du mot de passe maitre via **Argon2id**. Le serveur ne voit jamais les donnees en clair — meme un administrateur ne peut pas acceder au contenu.
+Files are **encrypted client-side** (AES-256-GCM) before being sent to the server. The encryption key is derived from the master password using **Argon2id**. The server never sees the data in plaintext — not even an administrator can access the content.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    Client (Navigateur)                │
+│                  Client (Browser)                    │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │  Interface    │  │  Crypto      │  │  Derivation│ │
-│  │  Next.js/React│  │  AES-256-GCM │  │  Argon2id  │ │
+│  │  Interface    │  │  Crypto      │  │  Key       │ │
+│  │  Next.js/React│  │  AES-256-GCM │  │  Derivation│ │
+│  │               │  │              │  │  Argon2id  │ │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬─────┘ │
 │         │                 │                  │        │
 └─────────┼─────────────────┼──────────────────┼───────┘
-          │ HTTPS           │ Blobs chiffres   │
+          │ HTTPS           │ Encrypted blobs  │
           ▼                 ▼                  ▼
 ┌─────────────────────────────────────────────────────┐
-│                 Infrastructure Docker                 │
+│                Docker Infrastructure                  │
 │                                                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
 │  │  Backend      │  │  MySQL 8     │  │  MinIO     │ │
-│  │  Next.js API  │  │  Metadonnees │  │  Stockage  │ │
-│  │  Port 3000    │  │  chiffrees   │  │  S3-compat │ │
+│  │  Next.js API  │  │  Encrypted   │  │  S3-compat.│ │
+│  │  Port 3000    │  │  metadata    │  │  storage   │ │
 │  └──────────────┘  └──────────────┘  └────────────┘ │
 │                                                       │
 └─────────────────────────────────────────────────────┘
 ```
 
-## Stack technique
+## Technical Stack
 
-| Composant | Technologie | Justification |
-|-----------|------------|---------------|
-| Frontend | Next.js 16 (React, TypeScript) | Framework moderne, SSR, ecosysteme riche |
-| Backend | Next.js API Routes | Stack JS unifiee, simplification du deploiement |
-| BDD | MySQL 8 | Metadonnees chiffrees, gestion utilisateurs, DCL |
-| Stockage fichiers | MinIO (S3-compatible) | Blobs chiffres, auto-heberge, resilient |
-| Crypto client | Web Crypto API + Argon2id | Chiffrement AES-256-GCM, derivation de cle |
-| Infrastructure | Docker + Docker Compose | Containerisation, segmentation reseau, zero-trust |
-| Derivation de cle | Argon2id (hash-wasm) | Derivation de la cle maitre depuis le mot de passe |
-| Partage | RSA-OAEP 2048 (Web Crypto) | Enrobage des cles de fichiers pour un destinataire |
-| CI/CD | GitHub Actions | Lint, build, tests automatises, audit de dependances |
-| SAST | CodeQL | Analyse statique de securite du code |
-| Logs / Audit | MySQL `audit_log` | Journal des evenements de securite (metadonnees only) |
+| Component | Technology | Rationale |
+|-----------|------------|-----------|
+| Frontend | Next.js 16 (React, TypeScript) | Modern framework, SSR, rich ecosystem |
+| Backend | Next.js API Routes | Unified JS stack, simplified deployment |
+| Database | MySQL 8 | Encrypted metadata, user management, DCL |
+| File storage | MinIO (S3-compatible) | Encrypted blobs, self-hosted, resilient |
+| Client-side crypto | Web Crypto API + Argon2id | AES-256-GCM encryption, key derivation |
+| Infrastructure | Docker + Docker Compose | Containerization, network segmentation, zero-trust |
+| Key derivation | Argon2id (hash-wasm) | Master key derivation from password |
+| Sharing | RSA-OAEP 2048 (Web Crypto) | File key wrapping for a specific recipient |
+| CI/CD | GitHub Actions | Automated linting, build, tests, dependency audit |
+| SAST | CodeQL | Static application security testing |
+| Logs / Audit | MySQL `audit_log` | Security event log (metadata only) |
 
-## Equipe
+## Team
 
-| Membre | Responsabilites |
-|--------|----------------|
-| **Gaspard** | Developpement Frontend/Backend, Forensique numerique, Coordination |
-| **Antoine** | BDD & NoSQL, DevOps (CI/CD, Docker), Pentesting, Co-developpement Backend |
-| **Raphael** | GRC (PSSI, Analyse de risques), Gestion des incidents, PCA/PRA |
+| Member | Responsibilities |
+|--------|-------------------|
+| **Gaspard** | Frontend/Backend development, Digital forensics, Coordination |
+| **Antoine** | Databases & NoSQL, DevOps (CI/CD, Docker), Pentesting, Backend co-development |
+| **Raphael** | GRC (Information Security Policy, Risk Analysis), Incident management, BCP/DRP |
 
-La documentation et la gestion de projet sont assurees par l'ensemble de l'equipe.
+Documentation and project management are handled collectively by the whole team.
 
-## Demarrage rapide
+## Quick Start
 
-### Prerequis
-- Docker et Docker Compose
-- Node.js 20+ (pour le developpement local)
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 20+ (for local development)
 
-### Lancer avec Docker
+### Run with Docker
 ```bash
 docker compose up --build
 ```
-L'application sera accessible sur `http://localhost:3000`.
+The application will be available at `http://localhost:3000`.
 
-### Developpement local
+### Local Development
 ```bash
 npm install
 npm run dev
 ```
-> Le chiffrement utilise l'API Web Crypto, disponible uniquement en contexte
-> securise : accedez toujours a l'app via `http://localhost:3000` (jamais via une
-> IP), sinon la derivation de cle echoue.
+> Encryption relies on the Web Crypto API, which is only available in a
+> secure context: always access the app via `http://localhost:3000` (never
+> via a raw IP address), otherwise key derivation will fail.
 
-### Tests automatises
+### Automated Tests
 ```bash
-npm test     # tests du coeur cryptographique (derivation, AES-GCM, partage RSA, recuperation)
+npm test     # tests for the cryptographic core (key derivation, AES-GCM, RSA sharing, recovery)
 npm run lint # ESLint
 ```
 
-## Fonctionnalites
+## Features
 
-- **Coffre-fort chiffre** : upload, apercu, edition (texte/image) et telechargement de fichiers, chiffres de bout en bout cote client (AES-256-GCM).
-- **Gestionnaire de mots de passe** : champs sensibles chiffres cote client.
-- **Partage securise** : partage d'un fichier a un autre utilisateur via enrobage RSA-OAEP de la cle du fichier — seul le destinataire peut le dechiffrer.
-- **Recuperation de compte** : code de recuperation genere a l'inscription, permettant de retrouver son coffre en cas d'oubli du mot de passe maitre (sans jamais exposer la cle au serveur).
-- **Journal d'audit** : tracabilite des evenements de securite (connexion, upload, partage, suppression...) — metadonnees uniquement, jamais le contenu.
+- **Encrypted vault**: upload, preview, edit (text/image), and download files, end-to-end encrypted client-side (AES-256-GCM).
+- **Password manager**: sensitive fields encrypted client-side.
+- **Secure sharing**: share a file with another user via RSA-OAEP wrapping of the file key — only the recipient can decrypt it.
+- **Account recovery**: a recovery code generated at sign-up allows vault recovery if the master password is forgotten (without ever exposing the key to the server).
+- **Audit log**: traceability of security events (login, upload, share, deletion...) — metadata only, never the content itself.
 
-## Structure du projet
+## Project Structure
 
 ```
 safelock/
 ├── src/
 │   └── app/
-│       ├── page.tsx              # Page login/inscription
-│       ├── layout.tsx            # Layout racine
-│       ├── globals.css           # Theme SafeLock
+│       ├── page.tsx              # Login/sign-up page
+│       ├── layout.tsx            # Root layout
+│       ├── globals.css           # SafeLock theme
 │       └── dashboard/
-│           ├── layout.tsx        # Layout dashboard (sidebar)
-│           └── page.tsx          # Vue "Mes fichiers"
+│           ├── layout.tsx        # Dashboard layout (sidebar)
+│           └── page.tsx          # "My files" view
 ├── db/
 │   └── init/
-│       └── 001-schema.sql       # Schema MySQL initial
+│       └── 001-schema.sql       # Initial MySQL schema
 ├── docs/
-│   └── PSSI.md                  # Politique de Securite (v1.0)
-├── docker-compose.yml            # Orchestration des services
-├── Dockerfile                    # Build multi-stage de l'app
+│   └── PSSI.md                  # Security Policy (v1.0)
+├── docker-compose.yml            # Service orchestration
+├── Dockerfile                    # Multi-stage app build
 └── README.md
 ```
 
-## Competences visees
+## Target Competencies
 
-- **GRC** : PSSI, analyse de risques EBIOS RM, plan de traitement
-- **Gestion des incidents** : PCA/PRA, procedures de recuperation
-- **BDD** : MySQL (DCL, sauvegardes), NoSQL (logs, audit)
-- **Pentesting** : Audit OWASP Top 10, tests crypto, gestion de cles
-- **DevOps** : Docker, CI/CD GitHub Actions, SAST, scan de dependances
-- **Forensique** : Simulation d'incident, collecte de preuves, analyse
+- **GRC**: Information Security Policy, EBIOS RM risk analysis, treatment plan
+- **Incident management**: Business Continuity/Disaster Recovery Plans, recovery procedures
+- **Databases**: MySQL (DCL, backups), NoSQL (logs, audit)
+- **Pentesting**: OWASP Top 10 audit, crypto testing, key management
+- **DevOps**: Docker, GitHub Actions CI/CD, SAST, dependency scanning
+- **Forensics**: Incident simulation, evidence collection, analysis
 
-## Gestion de projet
+## Project Management
 
-- **Versionnement** : Git / GitHub
-- **Suivi des taches** : Trello
-- **Communication** : Teams
+- **Version control**: Git / GitHub
+- **Task tracking**: Trello
+- **Communication**: Teams
 
-
-Ynov Campus Montpellier -  CYBER B3 - 2026
+Ynov Campus Montpellier - CYBER B3 - 2026
